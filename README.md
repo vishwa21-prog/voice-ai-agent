@@ -1,4 +1,4 @@
-# 2Care.ai Voice Agent
+# AI Voice Agent
 
 Real-time voice AI for clinical appointment booking. Speaks English, Hindi, and Tamil.
 
