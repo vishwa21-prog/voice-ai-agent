@@ -1,0 +1,9 @@
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+anthropic==0.40.0
+openai==1.56.2
+gtts==2.5.3
+langdetect==1.0.9
+python-dotenv==1.0.1
+pytest==8.3.3
+websockets==13.1

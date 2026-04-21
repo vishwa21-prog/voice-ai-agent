@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2Care.ai — Voice Agent</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #f5f4f0;
+    --card: #ffffff;
+    --border: #e2e0d8;
+    --text: #1a1916;
+    --muted: #8a8880;
+    --green: #1a7a3c;
+    --green-bg: #edf7f1;
+    --red: #b83030;
+    --accent: #1a1916;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* header */
+  header {
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo { font-weight: 500; font-size: 1rem; letter-spacing: -0.3px; }
+  .logo em { color: var(--green); font-style: normal; }
+  .pill {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 2px 7px;
+    color: var(--muted);
+  }
+  .conn { margin-left: auto; font-family: var(--mono); font-size: 0.7rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+  .dot.live { background: var(--green); }
+
+  /* layout */
+  .layout {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    max-width: 1100px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 20px;
+    gap: 16px;
+  }
+
+  /* sidebar */
+  aside { display: flex; flex-direction: column; gap: 14px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+  }
+  .card-label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  select, input[type=text] {
+    width: 100%;
+    font-family: var(--sans);
+    font-size: 0.82rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 7px 9px;
+    color: var(--text);
+    outline: none;
+  }
+  select:focus, input[type=text]:focus { border-color: var(--accent); }
+
+  .lang-row { display: flex; gap: 6px; margin-top: 8px; }
+  .lang-btn {
+    flex: 1;
+    font-family: var(--sans);
+    font-size: 0.75rem;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--muted);
+    border-radius: 4px;
+    padding: 5px 3px;
+    cursor: pointer;
+    text-align: center;
+    transition: all .15s;
+  }
+  .lang-btn.on { border-color: var(--accent); background: var(--accent); color: #fff; }
+
+  /* latency */
+  .latency-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .latency-total { font-family: var(--mono); font-size: 1.2rem; font-weight: 500; }
+  .latency-status { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); }
+  .latency-status.ok { color: var(--green); }
+  .latency-status.slow { color: var(--red); }
+  .bar { height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 10px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width .3s, background .3s; width: 0%; }
+  .breakdown { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; font-family: var(--mono); font-size: 0.68rem; color: var(--muted); }
+  .breakdown span:last-child { color: var(--text); text-align: right; }
+
+  /* main chat */
+  main { display: flex; flex-direction: column; }
+
+  .conversation {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px;
+    min-height: 380px;
+    max-height: 440px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+  .conversation::-webkit-scrollbar { width: 3px; }
+  .conversation::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .bubble { display: flex; flex-direction: column; gap: 3px; max-width: 80%; }
+  .bubble.user { align-self: flex-end; align-items: flex-end; }
+  .bubble.agent { align-self: flex-start; }
+
+  .bubble-text {
+    font-size: 0.875rem;
+    line-height: 1.55;
+    padding: 9px 13px;
+    border-radius: 6px;
+  }
+  .bubble.agent .bubble-text { background: var(--bg); border: 1px solid var(--border); }
+  .bubble.user .bubble-text { background: var(--accent); color: #fff; }
+
+  .bubble-meta {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    color: var(--muted);
+  }
+
+  /* trace */
+  .trace {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    max-width: 85%;
+    align-self: flex-start;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+  .trace .tc { color: var(--green); }
+  .trace .tr { color: var(--text); }
+
+  /* input area */
+  .input-area {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+  }
+
+  .quick { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .qb {
+    font-family: var(--sans);
+    font-size: 0.72rem;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--muted);
+    padding: 4px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .qb:hover { border-color: var(--accent); color: var(--accent); }
+
+  .controls { display: flex; gap: 8px; align-items: center; }
+
+  .mic {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all .15s;
+  }
+  .mic.rec { background: var(--red); border-color: var(--red); color: #fff; }
+  .mic svg { width: 16px; height: 16px; }
+
+  .text-wrap { flex: 1; display: flex; gap: 6px; }
+  input[type=text] { border-radius: 4px; }
+  .send {
+    padding: 8px 14px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .send:hover { opacity: 0.88; }
+
+  /* empty state */
+  .empty {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 0.82rem;
+    text-align: center;
+  }
+  .empty-icon { font-size: 1.6rem; margin-bottom: 4px; }
+
+  @keyframes fadeup { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+  .bubble, .trace { animation: fadeup .2s ease; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">2Care<em>.ai</em></div>
+  <div class="pill">voice agent</div>
+  <div class="conn">
+    <div class="dot" id="dot"></div>
+    <span id="conn-label">demo mode</span>
+  </div>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="card">
+      <div class="card-label">Patient</div>
+      <select id="patient" onchange="resetSession()">
+        <option value="patient_001">Ravi Kumar</option>
+        <option value="patient_002">Priya Singh</option>
+        <option value="patient_new">New patient</option>
+      </select>
+      <div class="lang-row">
+        <button class="lang-btn on" onclick="setLang('en',this)">EN</button>
+        <button class="lang-btn" onclick="setLang('hi',this)">हि</button>
+        <button class="lang-btn" onclick="setLang('ta',this)">த</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Latency</div>
+      <div class="latency-row">
+        <span class="latency-total" id="lat-total">— ms</span>
+        <span class="latency-status" id="lat-status">no data</span>
+      </div>
+      <div class="bar"><div class="bar-fill" id="bar"></div></div>
+      <div class="breakdown">
+        <span>STT</span><span id="l-stt">—</span>
+        <span>Lang</span><span id="l-lang">—</span>
+        <span>Agent</span><span id="l-agent">—</span>
+        <span>TTS</span><span id="l-tts">—</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Session</div>
+      <div class="breakdown">
+        <span>Turns</span><span id="s-turns">0</span>
+        <span>Avg</span><span id="s-avg">—</span>
+        <span>&lt;450ms</span><span id="s-pct">—</span>
+        <span>Lang</span><span id="s-lang">en</span>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="conversation" id="conv">
+      <div class="empty" id="empty">
+        <div class="empty-icon">🎙</div>
+        <div>Press mic or type to start</div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="quick">
+        <button class="qb" onclick="send('Book a cardiologist tomorrow')">Book cardiologist</button>
+        <button class="qb" onclick="send('What are my appointments?')">My appointments</button>
+        <button class="qb" onclick="send('Cancel my appointment')">Cancel</button>
+        <button class="qb" onclick="send('मुझे कल डर्माटोलॉजिस्ट से मिलना है')">Hindi</button>
+        <button class="qb" onclick="send('நாளை காலை சந்திப்பு வேண்டும்')">Tamil</button>
+      </div>
+      <div class="controls">
+        <button class="mic" id="mic" onclick="toggleMic()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </button>
+        <div class="text-wrap">
+          <input type="text" id="txt" placeholder="Type or speak…" onkeydown="if(event.key==='Enter') send()">
+          <button class="send" onclick="send()">Send</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ── state ──────────────────────────────────────────────────────────────────────
+let ws = null;
+let lang = 'en';
+let turns = 0, lats = [];
+let recording = false;
+let recorder = null;
+
+// ── ws ─────────────────────────────────────────────────────────────────────────
+function connect() {
+  const pid = document.getElementById('patient').value;
+  ws = new WebSocket(`ws://localhost:8000/ws/${pid}`);
+  ws.binaryType = 'arraybuffer';
+  ws.onopen = () => setConn(true);
+  ws.onclose = () => { setConn(false); setTimeout(connect, 3000); };
+  ws.onerror = () => setConn(false);
+  ws.onmessage = e => typeof e.data === 'string' ? onCtrl(JSON.parse(e.data)) : playAudio(e.data);
+}
+
+function setConn(ok) {
+  document.getElementById('dot').className = 'dot' + (ok ? ' live' : '');
+  document.getElementById('conn-label').textContent = ok ? 'connected' : 'demo mode';
+}
+
+function onCtrl(m) {
+  if (m.type === 'user')  addBubble('user', m.text);
+  if (m.type === 'agent') {
+    addBubble('agent', m.text, m.lang);
+    if (m.trace?.length) addTrace(m.trace);
+    if (m.latency) updateLatency(m.latency);
+    if (m.lang) { lang = m.lang; document.getElementById('s-lang').textContent = m.lang.toUpperCase(); }
+  }
+}
+
+function playAudio(buf) {
+  try {
+    const blob = new Blob([buf], { type: 'audio/mp3' });
+    new Audio(URL.createObjectURL(blob)).play();
+  } catch (_) {}
+}
+
+// ── demo (no ws) ───────────────────────────────────────────────────────────────
+const DEMO = {
+  book: {
+    en: "I found Dr. Anjali Sharma (cardiologist) available tomorrow. Slots: 10:00, 14:00, 16:00. Which works for you?",
+    hi: "डॉ. अंजलि शर्मा (कार्डियोलॉजिस्ट) कल उपलब्ध हैं। स्लॉट: 10:00, 14:00, 16:00। कौन सा ठीक रहेगा?",
+    ta: "டாக்டர் அஞ்சலி சர்மா (இதய நோய் நிபுணர்) நாளை கிடைக்கிறார். நேரங்கள்: 10:00, 14:00, 16:00. எது சரியாக இருக்கும்?",
+  },
+  cancel: {
+    en: "I found your appointment with Dr. Anjali Sharma tomorrow. Are you sure you want to cancel?",
+    hi: "कल डॉ. शर्मा के साथ अपॉइंटमेंट मिला। क्या सच में रद्द करना है?",
+    ta: "நாளை டாக்டர் சர்மா உடன் சந்திப்பு உள்ளது. ரத்து செய்ய விரும்புகிறீர்களா?",
+  },
+  appts: {
+    en: "You have 1 upcoming appointment: Dr. Anjali Sharma, tomorrow at 10:30. APT-3F8A2B.",
+    hi: "आपके पास 1 अपॉइंटमेंट है: डॉ. अंजलि शर्मा, कल 10:30 बजे।",
+    ta: "உங்களுக்கு 1 சந்திப்பு உள்ளது: டாக்டர் அஞ்சலி சர்மா, நாளை 10:30 மணி.",
+  },
+  default: {
+    en: "I can help you book, reschedule, or cancel appointments. Which doctor or speciality are you looking for?",
+    hi: "अपॉइंटमेंट बुक, बदलने या रद्द करने में मदद कर सकता हूँ। किस डॉक्टर की जरूरत है?",
+    ta: "சந்திப்பு முன்பதிவு, மாற்றம் அல்லது ரத்து செய்வதில் உதவலாம். எந்த மருத்துவர் வேண்டும்?",
+  },
+};
+
+const DEMO_TRACE = {
+  book: [
+    {tool:"check_slots", in:{speciality:"cardiologist",date:"tomorrow"}, out:{free_slots:["10:00","14:00","16:00"]}},
+  ],
+};
+
+function demoDetectLang(t) {
+  for (const ch of t) { const c = ch.charCodeAt(0); if (c>=0x0900&&c<=0x097F) return 'hi'; if (c>=0x0B80&&c<=0x0BFF) return 'ta'; }
+  return lang;
+}
+
+function demoReply(text) {
+  const t = text.toLowerCase();
+  const l = demoDetectLang(text);
+  let key = 'default', trace = [];
+  if (t.includes('book')||t.includes('cardiolog')||t.includes('मिलना')||t.includes('சந்திப்பு')) { key='book'; trace=DEMO_TRACE.book; }
+  else if (t.includes('cancel')||t.includes('रद्द')||t.includes('ரத்து')) key='cancel';
+  else if (t.includes('appointment')||t.includes('अपॉइंट')||t.includes('சந்திப்பு')) key='appts';
+  return { text: (DEMO[key]||DEMO.default)[l]||DEMO[key]['en'], lang: l, trace };
+}
+
+function demoLatency() {
+  const stt=85+Math.random()*50, ld=7+Math.random()*8, ag=130+Math.random()*70, tts=45+Math.random()*35;
+  const total=stt+ld+ag+tts;
+  return {total:Math.round(total),stt:Math.round(stt),lang:Math.round(ld),agent:Math.round(ag),tts:Math.round(tts),ok:total<450};
+}
+
+// ── send ───────────────────────────────────────────────────────────────────────
+function send(override) {
+  const el = document.getElementById('txt');
+  const text = override || el.value.trim();
+  if (!text) return;
+  el.value = '';
+  addBubble('user', text);
+
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({type:'text_input', text}));
+  } else {
+    // demo simulation
+    setTimeout(() => {
+      const r = demoReply(text);
+      addBubble('agent', r.text, r.lang);
+      if (r.trace.length) addTrace(r.trace);
+      updateLatency(demoLatency());
+      lang = r.lang;
+      document.getElementById('s-lang').textContent = r.lang.toUpperCase();
+    }, 500 + Math.random()*400);
+  }
+}
+
+// ── mic ────────────────────────────────────────────────────────────────────────
+async function toggleMic() {
+  if (recording) { recorder?.stop(); return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    recorder = new MediaRecorder(stream, {mimeType:'audio/webm'});
+    recorder.ondataavailable = e => {
+      if (e.data.size > 0 && ws?.readyState === WebSocket.OPEN) {
+        e.data.arrayBuffer().then(b => ws.send(b));
+      }
+    };
+    recorder.onstop = () => {
+      stream.getTracks().forEach(t=>t.stop());
+      ws?.send(JSON.stringify({type:'utterance_end'}));
+      document.getElementById('mic').classList.remove('rec');
+      recording = false;
+    };
+    recorder.start(100);
+    recording = true;
+    document.getElementById('mic').classList.add('rec');
+  } catch (_) {
+    alert('Mic access denied — use text input');
+  }
+}
+
+// ── UI helpers ─────────────────────────────────────────────────────────────────
+function addBubble(role, text, l) {
+  document.getElementById('empty')?.remove();
+  const conv = document.getElementById('conv');
+  const b = document.createElement('div');
+  b.className = `bubble ${role}`;
+  const time = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  b.innerHTML = `
+    <div class="bubble-text">${esc(text)}</div>
+    <div class="bubble-meta">${role==='agent'?'2Care':'You'} · ${time}${l?' · '+l.toUpperCase():''}</div>`;
+  conv.appendChild(b);
+  conv.scrollTop = conv.scrollHeight;
+}
+
+function addTrace(steps) {
+  const conv = document.getElementById('conv');
+  const t = document.createElement('div');
+  t.className = 'trace';
+  t.innerHTML = steps.map(s =>
+    `<div><span class="tc">→ ${s.tool}</span> <span class="tr">${JSON.stringify(s.out).slice(0,80)}</span></div>`
+  ).join('');
+  conv.appendChild(t);
+  conv.scrollTop = conv.scrollHeight;
+}
+
+function updateLatency(l) {
+  document.getElementById('lat-total').textContent = l.total + ' ms';
+  const st = document.getElementById('lat-status');
+  st.textContent = l.ok ? '< 450ms ✓' : 'SLOW ✗';
+  st.className = 'latency-status ' + (l.ok ? 'ok' : 'slow');
+  const pct = Math.min(l.total / 600 * 100, 100);
+  const bar = document.getElementById('bar');
+  bar.style.width = pct + '%';
+  bar.style.background = l.ok ? '#1a7a3c' : '#b83030';
+  ['stt','lang','agent','tts'].forEach(k => {
+    document.getElementById('l-'+k).textContent = (l[k]||0) + 'ms';
+  });
+  lats.push(l.total); turns++;
+  document.getElementById('s-turns').textContent = turns;
+  document.getElementById('s-avg').textContent = Math.round(lats.reduce((a,b)=>a+b,0)/lats.length) + 'ms';
+  const ok = lats.filter(x=>x<450).length;
+  document.getElementById('s-pct').textContent = Math.round(ok/lats.length*100) + '%';
+}
+
+function setLang(l, btn) {
+  lang = l;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('s-lang').textContent = l.toUpperCase();
+}
+
+function resetSession() {
+  document.getElementById('conv').innerHTML = '<div class="empty" id="empty"><div class="empty-icon">🎙</div><div>Press mic or type to start</div></div>';
+  turns = 0; lats = [];
+  ['s-turns','s-avg','s-pct'].forEach(id => document.getElementById(id).textContent = id==='s-turns'?'0':'—');
+  ws?.close();
+  setTimeout(connect, 200);
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── init ───────────────────────────────────────────────────────────────────────
+connect();
+setTimeout(() => {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    addBubble('agent', 'Welcome back, Ravi! How can I help with your appointment today?');
+  }
+}, 1000);
+</script>
+</body>
+</html>
